@@ -160,10 +160,31 @@ long zeng_online_get_last_list_rooms_latency(void)
     return zeng_online_last_list_rooms_latency;
 }
 
+
+
+char *string_zoc_return_connected_status_offline="OFFLINE";
+char *string_zoc_return_connected_status_online="ONLINE";
+
+//Retorna estado de conexion de zeng, asumiendo que está conectado:
+//Si no ha habido timeout recibiendo snapshots, "ONLINE"
+//Si ha habido timeout recibiendo snapshots y por tanto ahora permitimos teclas, "OFFLINE"
+char *zoc_return_connected_status(void)
+{
+    if (zoc_last_snapshot_received_counter==0) return string_zoc_return_connected_status_offline;
+    else return string_zoc_return_connected_status_online;
+}
+
+void zoc_show_bottom_line_footer_connected(void)
+{
+    menu_footer_clear_bottom_line();
+    menu_footer_bottom_line(); //Para actualizar la linea de abajo del todo con texto ZEsarUX version bla bla y ONLINE/OFFLINE si conviene
+}
+
+
 #ifdef USE_PTHREADS
 
 //Funciones que usan pthreads
-
+int zoc_receive_snapshot(int indice_socket);
 
 
 //Devuelve 0 si no conectado
@@ -2208,6 +2229,8 @@ void *zoc_master_thread_function(void *nada GCC_UNUSED)
 {
 
     //conectar a remoto
+    //Inicializar timeout para no recibir tempranos mensajes de "OFFLINE"
+    zoc_last_snapshot_received_counter=ZOC_TIMEOUT_NO_SNAPSHOT;
 
     //zeng_remote_list_rooms_buffer[0]=0;
 
@@ -2587,6 +2610,8 @@ void *zoc_slave_thread_function(void *nada GCC_UNUSED)
 {
 
     //conectar a remoto
+    //Inicializar timeout para no recibir tempranos mensajes de "OFFLINE"
+    zoc_last_snapshot_received_counter=ZOC_TIMEOUT_NO_SNAPSHOT;
 
     //zeng_remote_list_rooms_buffer[0]=0;
 
@@ -2779,12 +2804,14 @@ void zeng_online_client_apply_pending_received_snapshot(void)
 
     zoc_pending_apply_received_snapshot=0;
 
+    //Si estaba offline, reactualizamos
     if (zoc_last_snapshot_received_counter==0) {
+        zoc_show_bottom_line_footer_connected(); //Para actualizar la linea de abajo del todo con texto ZEsarUX version bla bla - ONLINE
         generic_footertext_print_operating("ONLINE");
     }
 
     //5 segundos de timeout, para aceptar teclas slave si no hay snapshot
-    zoc_last_snapshot_received_counter=250;
+    zoc_last_snapshot_received_counter=ZOC_TIMEOUT_NO_SNAPSHOT;
 
     //zeng_online_client_reset_scanline_counter();
 
@@ -2889,18 +2916,33 @@ void zeng_online_client_prepare_snapshot_if_needed(void)
 
 					if (zoc_send_snapshot_mem_hexa==NULL) zoc_send_snapshot_mem_hexa=malloc(ZRCP_GET_PUT_SNAPSHOT_MEM*2); //16 MB es mas que suficiente
 
-					int char_destino=0;
+					//int char_destino=0;
 
 					int i;
 
-					for (i=0;i<longitud;i++,char_destino +=2) {
-						sprintf (&zoc_send_snapshot_mem_hexa[char_destino],"%02X",buffer_temp[i]);
+                    z80_byte *origen=buffer_temp;
+                    char *destino=zoc_send_snapshot_mem_hexa;
+                    z80_byte byte_leido;
+
+					for (i=0;i<longitud;i++/*,char_destino +=2*/) {
+                        //En vez de sprintf, que es poco optimo, usar alternativa
+                        //Comparativa: con un snapshot con un di y un jp 16384, tarda
+                        //con sprintf: 116 microsegundos el tiempo mas bajo
+                        //con util_byte_to_hex_nibble: 5 microsegundos el tiempo mas bajo
+						//sprintf (&zoc_send_snapshot_mem_hexa[char_destino],"%02X",buffer_temp[i]);
+                        byte_leido=*origen++;
+                        *destino++=util_byte_to_hex_nibble(byte_leido>>4);
+                        *destino++=util_byte_to_hex_nibble(byte_leido);
 					}
 
-					//metemos salto de linea y 0 al final
-					strcpy (&zoc_send_snapshot_mem_hexa[char_destino],"\n");
 
-					debug_printf (VERBOSE_DEBUG,"ZENG Online: Queuing snapshot to send, length: %d",longitud);
+
+					//metemos salto de linea y 0 al final
+					//strcpy (&zoc_send_snapshot_mem_hexa[char_destino],"\n");
+                    *destino++ ='\n';
+                    *destino++ =0;
+
+
 
                     //printf ("ZENG Online: Queuing snapshot to send, length: %d\n",longitud);
 
@@ -2910,6 +2952,8 @@ void zeng_online_client_prepare_snapshot_if_needed(void)
 
 
 					zoc_pending_send_snapshot=1;
+
+                    debug_printf (VERBOSE_DEBUG,"ZENG Online: Queuing snapshot to send, length: %d",longitud);
 
 
 				}
@@ -2939,6 +2983,7 @@ void zeng_online_client_end_frame_from_core_functions(void)
 
             if (zoc_last_snapshot_received_counter==0) {
                 printf("Timeout receiving snapshots from master. Allowing local key press\n");
+                zoc_show_bottom_line_footer_connected(); //Para actualizar la linea de abajo del todo con texto ZEsarUX version bla bla - OFFLINE
                 generic_footertext_print_operating("OFFLIN");
             }
 
