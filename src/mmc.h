@@ -46,7 +46,6 @@ extern z80_bit mmc_write_protection;
 
 extern z80_bit mmc_persistent_writes;
 
-
 extern z80_byte mmc_last_command;
 
 extern z80_byte mmc_r1;
