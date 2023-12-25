@@ -232,7 +232,7 @@ void sdcard_write(z80_byte value)
 
                 if(read_param(value));
                 else if(read_crc7(value));
-                else if(set_r1_state(value, sdcard.command_state&SDCARD_R1_IDLE_STATE))
+                else if(set_r1_state(value, sdcard.command_state&SDCARD_R1_IDLE_STATE)&&!is_error_state())
                 {
                     crc16 = 0;
                     long position = (sdcard.command_params[0]<<24) + 
@@ -248,7 +248,7 @@ void sdcard_write(z80_byte value)
                     fread(buff, 1, sizeof(buff), pf);
                     fclose(pf);
                 }
-                else if(set_fe_token(value));
+                else if(!is_error_state() && set_fe_token(value));
                 else if(!is_error_state() && sdcard.command_param_index > 7 && sdcard.command_param_index < 520)
                 {
                     sdcard.command_ret = buff[sdcard.command_param_index - 8];
