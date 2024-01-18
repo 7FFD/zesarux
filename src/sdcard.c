@@ -104,6 +104,12 @@ static int set_fe_token(z80_byte value)
     return 1;
 }
 
+static int get_fe_token(z80_byte value)
+{
+    if(sdcard.command_param_index != 7 || is_error_state() || value != 0xfe) return 0;
+    return 1;
+}
+
 static int set_r3_state(z80_byte value, z80_byte state)
 {
     if(set_r1_state(value, state)) return 1;
@@ -152,6 +158,10 @@ void sdcard_write(z80_byte value)
     }
     else if(!sdcard.command_mode)
     {
+        static z80_int crc16;
+        static long position;
+        static char buff[512];
+
         // regular CMD processing
         switch (sdcard.command)
         {
@@ -227,26 +237,39 @@ void sdcard_write(z80_byte value)
             break;
         case SDCARD_READ_SBLOCK:
             {
-                static z80_int crc16;
-                static char buff[512];
-
                 if(read_param(value));
                 else if(read_crc7(value));
                 else if(set_r1_state(value, sdcard.command_state&SDCARD_R1_IDLE_STATE)&&!is_error_state())
                 {
                     crc16 = 0;
-                    long position = (sdcard.command_params[0]<<24) + 
+                    position = (sdcard.command_params[0]<<24) + 
                                (sdcard.command_params[1]<<16) + 
                                (sdcard.command_params[2]<<8) + 
                                (sdcard.command_params[3]<<0);
                     if(sdcard.type > SDSC) position <<= 9;
                     
-                    debug_printf(VERBOSE_INFO, "SD Card position: 0x%08lX", position);
-// TODO: Add file error handling
                     FILE *pf = fopen(sdcard.file_path, "rb");
-                    fseek(pf, position, SEEK_SET);
-                    fread(buff, 1, sizeof(buff), pf);
-                    fclose(pf);
+                    if(pf)
+                    {
+                        debug_printf(VERBOSE_INFO, "SD Card read sector: 0x%08lX to %s, fd: %p", position, sdcard.file_path, pf);
+                        if(!fseek(pf, position, SEEK_SET))
+                        {
+                            debug_printf(VERBOSE_INFO, "SD Card positioning: 0x%08lX", ftell(pf));
+                            long read = fread(buff, 1, sizeof(buff), pf);
+                            debug_printf(VERBOSE_INFO, "SD Card bytes read: %ld", read);
+                        }
+                        if(ferror(pf))
+                        {
+                            debug_printf(VERBOSE_ERR, "SD Card read error: %d, Can't read file: ", ferror(pf), sdcard.file_path);
+                            set_r1_state(value, sdcard.command_state&SDCARD_R1_ADDR_ERROR);
+                        }
+                        fclose(pf);
+                    }
+                    else
+                    {
+                        debug_printf(VERBOSE_ERR, "SD Card read error: %d, Can't open file: ", ferror(pf), sdcard.file_path);
+                        set_r1_state(value, sdcard.command_state&SDCARD_R1_ADDR_ERROR);
+                    }
                 }
                 else if(!is_error_state() && set_fe_token(value));
                 else if(!is_error_state() && sdcard.command_param_index > 7 && sdcard.command_param_index < 520)
@@ -263,6 +286,79 @@ void sdcard_write(z80_byte value)
                     sdcard.command_ret = crc16&0xFF;
                 }
                 else set_busy(value);
+            }
+            break;    
+        case SDCARD_WRITE_SBLOCK:
+            {
+                if(read_param(value));
+                else if(read_crc7(value));
+                else if(set_r1_state(value, sdcard.command_state&SDCARD_R1_IDLE_STATE)&&!is_error_state())
+                {
+                    crc16 = 0;
+                    position = (sdcard.command_params[0]<<24) + 
+                               (sdcard.command_params[1]<<16) + 
+                               (sdcard.command_params[2]<<8) + 
+                               (sdcard.command_params[3]<<0);
+                    if(sdcard.type > SDSC) position <<= 9;
+                    
+                    debug_printf(VERBOSE_INFO, "SD Card position: 0x%08lX", position);
+                }
+                else if(!is_error_state() && get_fe_token(value))
+                {
+                    debug_printf(VERBOSE_INFO, "SD Card write token received");
+                }
+                else if(!is_error_state() && sdcard.command_param_index > 7 && sdcard.command_param_index < 520)
+                {
+                    debug_printf(VERBOSE_INFO, "SD Card write data to buff[%d]=%d", sdcard.command_param_index - 8, value);
+                    buff[sdcard.command_param_index - 8] = value;
+                    crc16 = sdcard_crc16_add(crc16, value);
+                }
+                else if(!is_error_state() && sdcard.command_param_index == 520)
+                {
+                    if(((z80_byte)((crc16>>8)&0xFF)) != value) 
+                    {
+                        set_r1_state(value, sdcard.command_state|SDCARD_R1_CRC_ERROR);
+                        debug_printf(VERBOSE_INFO, "SD Card write sector: CRC error: %hhd <> %hhd", ((z80_byte)((crc16>>8)&0xFF)), value);
+                    }
+                }
+                else if(!is_error_state() && sdcard.command_param_index == 521)
+                {
+                    if(((z80_byte)(crc16&0xFF)) != value) 
+                    {
+                        set_r1_state(value, sdcard.command_state|SDCARD_R1_CRC_ERROR);
+                        debug_printf(VERBOSE_INFO, "SD Card write sector: CRC error: %hhd <> %hhd", ((z80_byte)(crc16&0xFF)), value);
+                    }
+                    else
+                    {
+                        FILE *pf = fopen(sdcard.file_path, "rb+");
+                        if(pf)
+                        {
+                            debug_printf(VERBOSE_INFO, "SD Card write sector: 0x%08lX to %s, fd: %p", position, sdcard.file_path, pf);
+                            if(!fseek(pf, position, SEEK_CUR))
+                            {
+                                debug_printf(VERBOSE_INFO, "SD Card positioning: 0x%08lX", ftell(pf));
+                                long written = fwrite(buff, 1, sizeof(buff), pf);
+                                debug_printf(VERBOSE_INFO, "SD Card bytes written: %ld", written);
+                            }
+                            if(ferror(pf))
+                            {
+                                debug_printf(VERBOSE_ERR, "SD Card write error: %d, Can't write file: ", ferror(pf), sdcard.file_path);
+                                set_r1_state(value, 0x0D);
+                            }
+                            fclose(pf);
+                        }
+                        else
+                        {
+                            debug_printf(VERBOSE_ERR, "SD Card write error: %d, Can't open file: ", ferror(pf), sdcard.file_path);
+                            set_r1_state(value, 0x0D);
+                        }
+                    }
+                }
+                else if(!is_error_state() && sdcard.command_param_index == 522)
+                {
+                    set_r1_state(value, 0x05);
+                }
+                else if(!is_error_state()) set_busy(value);
             }    
             break;        
         default:

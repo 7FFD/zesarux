@@ -37,6 +37,7 @@ typedef enum
     SDCARD_CRC_ON_OFF    = 0x40|59,
     SDCARD_SET_BLOCK_LEN = 0x40|16,
     SDCARD_READ_SBLOCK   = 0x40|17,
+    SDCARD_WRITE_SBLOCK  = 0x40|24,
     SDCARD_UNKNOWN       = 0x40|0x3F
 } sdcard_cmd_t;
 

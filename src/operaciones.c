@@ -8794,12 +8794,14 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 			puerto_0x75 = value;
 			z80_bit cs = { puerto_0x75&1 };
 			sdcard_cs(cs);
+			return;
 		}
 
 		if(puerto_l == SDCARD_DATA_PORT)
 		{
 	        debug_printf(VERBOSE_INFO, "SD Card write to port: %d, value:%d", puerto_l, value);
 			sdcard_write(value);
+			return;
 		}
 	}
 
