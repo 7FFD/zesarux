@@ -883,6 +883,10 @@ void scrsdl_deal_raw_keys(int pressrelease,int scancode)
                         util_set_reset_key(UTIL_KEY_DEL,pressrelease);
                 break;
 
+                case SDL_SCANCODE_INSERT:
+                        util_set_reset_key(UTIL_KEY_INS,pressrelease);
+                break;
+                        
                 case SDL_SCANCODE_BACKSPACE:
                         util_set_reset_key(UTIL_KEY_BACKSPACE,pressrelease);
                 break;
@@ -1061,6 +1065,9 @@ void scrsdl_deal_keys(int pressrelease,int tecla)
                                 util_set_reset_key(UTIL_KEY_DEL,pressrelease);
                         break;
 
+			case SDLK_INSERT:
+				util_set_reset_key(UTIL_KEY_INS,pressrelease);
+                        break;
                         //Teclas que generan doble pulsacion
                         case SDLK_BACKSPACE:
                                 util_set_reset_key(UTIL_KEY_BACKSPACE,pressrelease);

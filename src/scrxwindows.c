@@ -1224,7 +1224,7 @@ void deal_with_keys(XEvent *event,int pressrelease)
 	//aunque esto es una union y se podria poner como native = XLookupKeysym( event, 0 );   pero retorna un warning
 
 	keysym=native;
-	//printf ("keysym: 0x%lX\n",native);
+	printf ("keysym: 0x%lX\n",native);
 
 	//Suport for numbers on azerty keyboard. You can get them without having to press shift
 	if (azerty_keyboard.v) {
@@ -1388,6 +1388,10 @@ void deal_with_keys(XEvent *event,int pressrelease)
 
 			case XK_Delete:
 				util_set_reset_key(UTIL_KEY_DEL,pressrelease);
+                        break;
+
+			case XK_Insert:
+				util_set_reset_key(UTIL_KEY_INS,pressrelease);
                         break;
 
 			//Teclas que generan doble pulsacion
@@ -1715,7 +1719,7 @@ void scrxwindows_actualiza_tablas_teclado(void)
 
 
 	while (XCheckWindowEvent(dpy,ventana,KeyPressMask|KeyReleaseMask|StructureNotifyMask|ExposureMask|ButtonPressMask|ButtonReleaseMask|PointerMotionMask,&event)) {
-	  //printf ("evento tipo: %d\n",event.type);
+	  printf ("evento tipo: %d\n",event.type);
           switch(event.type){
 
 		//Mouse

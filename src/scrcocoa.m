@@ -1767,6 +1767,10 @@ int scrcocoa_keymap_z88_cpc_leftz; //Tecla a la izquierda de la Z. usada en Chlo
                         util_set_reset_key(UTIL_KEY_DEL,pressrelease);
                 break;
 
+                case COCOA_KEY_INSERT:
+                        util_set_reset_key(UTIL_KEY_INS,pressrelease);
+                break;
+
                 //F1 pulsado
                 case COCOA_KEY_F1:
                         util_set_reset_key(UTIL_KEY_F1,pressrelease);

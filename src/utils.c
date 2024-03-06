@@ -7637,6 +7637,21 @@ void util_set_reset_key_continue_after_zeng(enum util_teclas tecla,int pressrele
 
 
                         case UTIL_KEY_DEL:
+
+                                if(MACHINE_IS_SPECTRUM)
+                                {
+                                        if(pressrelease)
+                                        {
+                                                //debug_printf(VERBOSE_INFO, "DELETE");
+                                                puerto_65278 &= 255-1;
+                                                puerto_61438 &= 255-2;
+                                        }
+                                        else
+                                        {
+                                                puerto_65278 |= 1;
+                                                puerto_61438 |= 2;
+                                        }
+                                }
                                 //printf("util press del\n");
                                 if (pressrelease) {
                                         //del en cpc es del
@@ -8641,6 +8656,20 @@ void util_set_reset_key_continue_after_zeng(enum util_teclas tecla,int pressrele
 
                         //PgUP
                         case UTIL_KEY_PAGE_UP:
+                                if(MACHINE_IS_SPECTRUM)
+                                {
+                                        if(pressrelease)
+                                        {
+                                                //debug_printf(VERBOSE_INFO, "PAGE UP");
+                                                puerto_65278 &= 255-1;
+                                                puerto_63486 &= 255-4;
+                                        }
+                                        else
+                                        {
+                                                puerto_65278 |= 1;
+                                                puerto_63486 |= 4;
+                                        }
+                                }
 
                                 if (pressrelease) {
                                         puerto_especial1 &=255-2;
@@ -8653,6 +8682,21 @@ void util_set_reset_key_continue_after_zeng(enum util_teclas tecla,int pressrele
                         //PgDn
                         case UTIL_KEY_PAGE_DOWN:
 
+                                if(MACHINE_IS_SPECTRUM)
+                                {
+                                        if(pressrelease)
+                                        {
+                                                //debug_printf(VERBOSE_INFO, "PAGE DOWN");
+                                                puerto_65278 &= 255-1;
+                                                puerto_63486 &= 255-8;
+                                        }
+                                        else
+                                        {
+                                                puerto_65278 |= 1;
+                                                puerto_63486 |= 8;
+                                        }
+                                }
+                                
                                 if (pressrelease) {
                                         puerto_especial1 &=255-4;
                                 }
@@ -8661,6 +8705,23 @@ void util_set_reset_key_continue_after_zeng(enum util_teclas tecla,int pressrele
                                 }
                         break;
 
+                        //INS
+                        case UTIL_KEY_INS:
+                                if(MACHINE_IS_SPECTRUM)
+                                {
+                                        if(pressrelease)
+                                        {
+                                                //debug_printf(VERBOSE_INFO, "INS");
+                                                puerto_65278 &= 255-1;
+                                                puerto_63486 &= 255-2;
+                                        }
+                                        else
+                                        {
+                                                puerto_65278 |= 1;
+                                                puerto_63486 |= 2;
+                                        }
+                                }
+                        break;
 
 			//Teclas del keypad
             //Los de arriba del numero 7, en keypad UK
