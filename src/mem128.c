@@ -51,9 +51,9 @@
 z80_byte *ram_mem_table[64];
 
 //Direcciones donde estan cada pagina de rom
-//array para +2a usamos 4 elementos
-//para 128, +2 usamos 2 elementos
-z80_byte *rom_mem_table[4];
+//array para +2a usamos 4 elementos + 4 writable
+//para 128, +2 usamos 2 elementos + 2 writable
+z80_byte *rom_mem_table[8];
 
 //Direcciones actuales mapeadas
 z80_byte *memory_paged[4];
@@ -639,7 +639,10 @@ void mem_page_rom_128k(void)
 	//asignar rom
 	//memory_paged[0]=rom_mem_table[(puerto_32765>>4)&1];
 	z80_byte rom_entra=(puerto_32765>>4)&1;
-	memory_paged[0]=rom_mem_table[rom_entra];
+	// if switched to writable area
+	z80_byte ram_entra = 0;
+	if((puerto_8189&0x40) == 0x40) ram_entra=2;
+	memory_paged[0]=rom_mem_table[rom_entra+ram_entra];
 
 	contend_pages_actual[0]=0;
 	debug_paginas_memoria_mapeadas[0]=DEBUG_PAGINA_MAP_ES_ROM+rom_entra;
@@ -732,11 +735,16 @@ void mem_init_memory_tables_128k(void)
 
                 int puntero=0;
                 int i;
+				// 32kb ROM
                 for (i=0;i<2;i++) {
                         rom_mem_table[i]=&memoria_spectrum[puntero];
                         puntero +=16384;
                 }
-
+				// 32kb writable RAM at ROM
+				for (i=2;i<4;i++) {
+                        rom_mem_table[i]=&memoria_spectrum[puntero];
+                        puntero +=16384;
+                }
 				//1 MB
                 for (i=0;i<64;i++) {
                         ram_mem_table[i]=&memoria_spectrum[puntero];

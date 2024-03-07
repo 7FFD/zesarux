@@ -625,7 +625,7 @@ void poke_byte_no_time_spectrum_128k(z80_int dir, z80_byte valor)
 
 	segmento = dir / 16384;
 
-	if (dir > 16383)
+	if (dir > 16383 || (puerto_8189 & 0xC0) == 0xC0)
 	{
 #ifdef EMULATE_VISUALMEM
 
@@ -656,7 +656,7 @@ void poke_byte_spectrum_128k(z80_int dir, z80_byte valor)
 #endif
 	t_estados += 3;
 
-	if (dir > 16383)
+	if (dir > 16383 || (puerto_8189 & 0xC0) == 0xC0)
 	{
 #ifdef EMULATE_VISUALMEM
 
@@ -8683,7 +8683,7 @@ void out_port_spectrum_border(z80_int puerto, z80_byte value)
 void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 {
 
-	// printf("out_port_spectrum_no_time port %04XH value %02XH\n",puerto,value);
+	//printf("out_port_spectrum_no_time port %04XH value %02XH\n",puerto,value);
 
 	debug_fired_out = 1;
 	// Los OUTS los capturan los diferentes interfaces que haya conectados, por tanto no hacer return en ninguno, para que se vayan comprobando
@@ -8808,11 +8808,22 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 	// Puertos de Paginacion
 	if (MACHINE_IS_SPECTRUM_128_P2)
 	{
+		// catch 0x1ffd (8189)
+		if((puerto & 0xe002) == 0)
+		{
+			if (mem_paging_is_enabled())
+			{
+				puerto_8189 = value;
+				printf("puerto_8189 = %02XH\n",puerto_8189);
+				// asignar rom
+				mem_page_rom_128k();
+			}
+			return;
+		} else
 		// Para 128k
 		// Puerto tipicamente 32765
 		// The additional memory features of the 128K/+2 are controlled to by writes to port 0x7ffd. As normal on Sinclair hardware, the port address is in fact only partially decoded and the hardware will respond to any port address with
 		// bits 1 and 15 reset. However, 0x7ffd should be used if at all possible to avoid conflicts with other hardware.
-
 		if ((puerto & 32770) == 0)
 		{
 
