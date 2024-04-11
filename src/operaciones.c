@@ -6794,6 +6794,9 @@ z80_byte lee_puerto_spectrum_no_time(z80_byte puerto_h, z80_byte puerto_l)
 			if (puerto_h == 0x3F)
 				return 255;
 		}
+
+		if (puerto_h == 0x7f) return puerto_32765;
+		if (puerto_h == 0x1f) return puerto_8189;
 	}
 
 	// Test betadisk

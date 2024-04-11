@@ -1649,9 +1649,9 @@ void malloc_mem_machine(void) {
 
         else if (MACHINE_IS_SPECTRUM_128_P2) {
 
-                //32 kb rom, 32 kb ram at rom, 128-1024 ram
-                malloc_machine((32+32+1024)*1024);
-                random_ram(memoria_spectrum+32768+32768,1024*1024);
+                //128 kb rom, 128 kb ram at rom, 128-1024 ram
+                malloc_machine((128+128+1024)*1024);
+                random_ram(memoria_spectrum+131072+131072,1024*1024);
 
 				mem_init_memory_tables_128k();
                 mem_set_normal_pages_128k();

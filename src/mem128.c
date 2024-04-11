@@ -639,9 +639,12 @@ void mem_page_rom_128k(void)
 	//asignar rom
 	//memory_paged[0]=rom_mem_table[(puerto_32765>>4)&1];
 	z80_byte rom_entra=(puerto_32765>>4)&1;
+	if((puerto_8189&0x04) == 0x04) rom_entra+=2;
+	if((puerto_8189&0x20) == 0x20) rom_entra+=4;
 	// if switched to writable area
 	z80_byte ram_entra = 0;
-	if((puerto_8189&0x40) == 0x40) ram_entra=2;
+	if((puerto_8189&0x40) == 0x40) ram_entra=8;
+	printf("ROM PAGE: %d\n",rom_entra+ram_entra);
 	memory_paged[0]=rom_mem_table[rom_entra+ram_entra];
 
 	contend_pages_actual[0]=0;
@@ -735,13 +738,13 @@ void mem_init_memory_tables_128k(void)
 
                 int puntero=0;
                 int i;
-				// 32kb ROM
-                for (i=0;i<2;i++) {
+				// 128kb ROM
+                for (i=0;i<8;i++) {
                         rom_mem_table[i]=&memoria_spectrum[puntero];
                         puntero +=16384;
                 }
-				// 32kb writable RAM at ROM
-				for (i=2;i<4;i++) {
+				// 128kb writable RAM at ROM
+				for (i=8;i<16;i++) {
                         rom_mem_table[i]=&memoria_spectrum[puntero];
                         puntero +=16384;
                 }
