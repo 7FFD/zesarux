@@ -177,7 +177,7 @@ void betadisk_cambio_pagina(z80_int dir)
 
 	else
 	{
-		if (dir >= 0x3C00 && dir <= 0x3DFF)
+		if (dir >= 0x3D00 && dir <= 0x3DFF)
 		{
 			// printf ("Activating betadisk rom space on PC=%04XH\n",reg_pc);
 			betadisk_active.v = 1;
