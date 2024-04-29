@@ -21,8 +21,8 @@
 #include <limits.h>
 #endif
 
-#define SDCARD_CONTROL_PORT     0x75
-#define SDCARD_DATA_PORT        0x77
+#define SDCARD_CONTROL_PORT     0x77
+#define SDCARD_DATA_PORT        0x57
 
 #define SDCARD_CRC7_POLY        0x89
 
@@ -99,4 +99,4 @@ void sdcard_write(z80_byte value);
 
 extern sdcard_t sdcard;
 
-extern z80_byte puerto_0x75;
+//extern z80_byte puerto_sdcard_cport;

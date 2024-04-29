@@ -6856,12 +6856,20 @@ z80_byte lee_puerto_spectrum_no_time(z80_byte puerto_h, z80_byte puerto_l)
 	{
 		if(puerto_l == SDCARD_CONTROL_PORT)
 		{
-			return puerto_0x75;
+			/*
+			На чтение:
+			bit 0 – если 0 – SD-карта установлена, 1 – SD-карта отсутствует
+			bit 1 - если 1 – то на карте включен режим Read only, если 0 – режим Read only не включен
+			bit 2..7 – не используются. 
+			*/
+			z80_bit sdcardReadOnly = {0};
+			return (sdcard.enabled.v ? 0 : 1) + (sdcardReadOnly.v >> 1);
 		}
 
 		if(puerto_l == SDCARD_DATA_PORT)
 		{
 			z80_byte port_value = sdcard_read();
+			sdcard_write(0xff);
 			return port_value;
 		}
 	}
@@ -8791,11 +8799,40 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 	// SD Card ports write
 	if(sdcard.enabled.v)
 	{
+		/*
+			Bits 7 .. 2: set to 0 for compatibility
+			Bit 1: signal CS, 1 after the reset, set to 0 to select the SD-card
+			Bit 0: Set to 1 for compatibility with Z-controller, sd power line on
+		*/
+
+		/*
+		Z-Controller
+		Для работы со SPI-интерфейсом используются два порта ввода-вывода:
+			
+			1. Порт конфигурации 77h На запись:
+			bit 0 – питание SD-карты (0 – выключено, 1 - включено)
+			bit 1 – управление сигналом CS
+			bit 2..7 – не используются
+			На чтение:
+			bit 0 – если 0 – SD-карта установлена, 1 – SD-карта отсутствует
+			bit 1 - если 1 – то на карте включен режим Read only, если 0 – режим Read only не включен
+			bit 2..7 – не используются. 
+			
+			2. Порт данных 57h
+			Используется как на запись, так и на чтение для обмена данными по SPI-интерфейсу.
+			Тактирование осуществляется автоматически при записи какого-либо значения в порт 57h. При этом формируются 8 тактовых импульсов на выходе SDCLK, на выход SDDI поступают данные последовательно от старшего бита к младшему с
+			
+			каждым фронтом сигнала SDCLK. Период следования тактовых импульсов составляет 125 нс. При чтении из порта 57h также автоматически производится тактирование. Буферный регистр порта 57h, используемый при чтении, заполняется данными со входа SDIN последовательно от старшего бита к младшему с каждым фронтом
+			сигнала SDCLK.
+		*/
+
 		if(puerto_l == SDCARD_CONTROL_PORT)
 		{
 	        debug_printf(VERBOSE_INFO, "SD Card write to port: %d, value:%d", puerto_l, value);
-			puerto_0x75 = value;
-			z80_bit cs = { puerto_0x75&1 };
+//			puerto_sdcard_cport = value;
+//			z80_bit cs = { puerto_sdcard_cport&1 };
+			z80_bit cs = { (value&3) == 1 ? 1 : 0 };
+			debug_printf(VERBOSE_INFO, "sdcard.cs.v: %d", cs.v);
 			sdcard_cs(cs);
 			return;
 		}

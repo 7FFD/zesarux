@@ -2,7 +2,7 @@
 #include "debug.h"
 #include "sdcard.h"
 
-z80_byte puerto_0x75 = 0xFF;
+//z80_byte puerto_sdcard_cport = 0x00;
 
 sdcard_t sdcard = {0,SDCARD_UNKNOWN,0,0,0,SDCARD_R1_ILLEGAL_COMMAND,0xFF,1,{0,0,0,0},0,SDSC,0};
 
@@ -12,7 +12,7 @@ static z80_int sdcard_crc16_add(z80_int crc, z80_byte value);
 
 void sdcard_enable()
 {
-    puerto_0x75 = 0x00;
+//    puerto_sdcard_cport = 0x00;
     // Initialize SD Card here
     sdcard.enabled.v = 1;
     sdcard.cs.v = 0;
@@ -27,7 +27,7 @@ void sdcard_disable()
     sdcard_reset();
     sdcard.enabled.v = 0;
     sdcard.command_mode = SDCARD_STD_MODE;
-    puerto_0x75 = 0xFF;
+//    puerto_sdcard_cport = 0xFF;
 }
 
 void sdcard_cs(z80_bit value)
@@ -73,7 +73,7 @@ static int read_crc7(z80_byte value)
     if(sdcard.command_param_index != 5) return 0;
 
     sdcard.command_crc |= 1;
-    if(sdcard.command_crc_on.v)
+    if(sdcard.command_crc_on.v && 0)
     {
         sdcard.command_state |= sdcard.command_crc != value ? SDCARD_R1_CRC_ERROR : 0;
         debug_printf(VERBOSE_INFO, "SD Card CRC check ON: 0x%02X, Host CRC: 0x%02X", sdcard.command_crc, value);
@@ -206,6 +206,7 @@ void sdcard_write(z80_byte value)
             else if(read_crc7(value));
             else if(set_r1_state(value, sdcard.command_state&SDCARD_R1_IDLE_STATE) && !is_error_state())
             {
+                debug_printf(VERBOSE_INFO, "SD Card APP MODE");
                 sdcard.command_mode = SDCARD_SWITCH2APP_MODE;
             }
             else set_busy(value);
