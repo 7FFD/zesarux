@@ -37,6 +37,17 @@ extern int mem128_multiplicador;
 
 extern z80_byte puerto_32765;
 extern z80_byte puerto_8189;
+
+// rom/ram control at 0x0000-0x3fff
+// 0x73 mem control port rd/wr
+// Bit 0: ROM/RAM A14, same trigger wr only 0x7ffd from Bit 4
+// Bit 1: ROM/RAM A15, same trigger wr only 0x1ffd from Bit 2
+// Bit 2: ROM/RAM A16
+// Bit 3-5: unused
+// Bit 6: 0=ROM, 1=RAM
+// Bit 7: 0=RO, 1=RW
+extern z80_byte port_romram_control; 
+
 extern void mem_page_ram_rom(void);
 extern void mem_set_normal_pages_p2a(void);
 extern void mem_set_normal_pages_128k(void);

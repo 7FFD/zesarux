@@ -990,6 +990,8 @@ void reset_cpu(void)
 	puerto_32765=0;
 	puerto_8189=0;
 
+	port_romram_control = 0;
+
 	zesarux_zxi_last_register=0;
 	zesarux_zxi_registers_array[0]=0;
 

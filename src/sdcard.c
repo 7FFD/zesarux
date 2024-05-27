@@ -2,8 +2,6 @@
 #include "debug.h"
 #include "sdcard.h"
 
-z80_byte puerto_0x75 = 0xFF;
-
 sdcard_t sdcard = {0,SDCARD_UNKNOWN,0,0,0,SDCARD_R1_ILLEGAL_COMMAND,0xFF,1,{0,0,0,0},0,SDSC,0};
 
 void sdcard_reset();
@@ -12,10 +10,9 @@ static z80_int sdcard_crc16_add(z80_int crc, z80_byte value);
 
 void sdcard_enable()
 {
-    puerto_0x75 = 0x00;
     // Initialize SD Card here
     sdcard.enabled.v = 1;
-    sdcard.cs.v = 0;
+    sdcard.cs = 0;
     sdcard.command_crc_on.v = 1;
     sdcard.command_state = SDCARD_R1_IDLE_STATE;
     sdcard.command_mode = SDCARD_STD_MODE;
@@ -27,19 +24,22 @@ void sdcard_disable()
     sdcard_reset();
     sdcard.enabled.v = 0;
     sdcard.command_mode = SDCARD_STD_MODE;
-    puerto_0x75 = 0xFF;
 }
 
-void sdcard_cs(z80_bit value)
+// 0x75 sd card control port
+// Bit 0: sd power 0=off,1=on
+// Bit 1: sd cs 0=deselected,1=selected
+// Bit 2-7: unused
+void sdcard_cs(z80_byte value)
 {
-    if(sdcard.cs.v != value.v)
+    if(sdcard.cs != (value&3))
     {
-        sdcard.cs = value;
+        sdcard.cs = value&3;
         sdcard_reset();
         if(sdcard.command_mode == SDCARD_STD_MODE);
-        else if(sdcard.command_mode == SDCARD_SWITCH2APP_MODE && !sdcard.cs.v) sdcard.command_mode = SDCARD_APP_MODE;
-        else if(sdcard.command_mode == SDCARD_APP_MODE && !sdcard.cs.v) sdcard.command_mode = SDCARD_STD_MODE;
-        debug_printf(VERBOSE_INFO, "SD Card CS: %d", sdcard.cs.v);
+        else if(sdcard.command_mode == SDCARD_SWITCH2APP_MODE && sdcard.cs != 3) sdcard.command_mode = SDCARD_APP_MODE;
+        else if(sdcard.command_mode == SDCARD_APP_MODE && sdcard.cs != 3) sdcard.command_mode = SDCARD_STD_MODE;
+        debug_printf(VERBOSE_INFO, "SD Card CS: %d", sdcard.cs);
     }
 }
 
@@ -56,7 +56,7 @@ void sdcard_reset()
 
 z80_byte sdcard_read()
 {
-    debug_printf(VERBOSE_INFO, "SD Card read: 0x%02X, MODE: %d, CS:%d", sdcard.command_ret, sdcard.command_mode, sdcard.cs.v);
+    debug_printf(VERBOSE_INFO, "SD Card read: 0x%02X, MODE: %d, CS:%d", sdcard.command_ret, sdcard.command_mode, sdcard.cs);
     return sdcard.command_ret;
 }
 
@@ -144,10 +144,10 @@ static void illegal_cmd(z80_byte value)
 
 void sdcard_write(z80_byte value)
 {
-    debug_printf(VERBOSE_INFO, "SD Card write: 0x%02X, MODE: %d, CS: %d", value, sdcard.command_mode, sdcard.cs.v);
+    debug_printf(VERBOSE_INFO, "SD Card write: 0x%02X, MODE: %d, CS: %d", value, sdcard.command_mode, sdcard.cs);
 
     // if chip select hasn't been activated before, just ignore input
-    if(!sdcard.cs.v) return;
+    if(sdcard.cs != 3) return;
 
     // if it's first byte then it must be a command
     if(!sdcard.command_param_index)

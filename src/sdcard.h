@@ -21,6 +21,7 @@
 #include <limits.h>
 #endif
 
+#define ROMRAM_CONTROL_PORT     0x73
 #define SDCARD_CONTROL_PORT     0x75
 #define SDCARD_DATA_PORT        0x77
 
@@ -71,7 +72,7 @@ typedef enum
 typedef struct
 {
     // state parameters
-    z80_bit cs;
+    z80_byte cs;
     sdcard_cmd_t command;
     sdcard_cmd_mode_t command_mode;
     int command_param_index;
@@ -91,12 +92,10 @@ void sdcard_enable();
 
 void sdcard_disable();
 
-void sdcard_cs(z80_bit value);
+void sdcard_cs(z80_byte value);
 
 z80_byte sdcard_read();
 
 void sdcard_write(z80_byte value);
 
 extern sdcard_t sdcard;
-
-extern z80_byte puerto_0x75;

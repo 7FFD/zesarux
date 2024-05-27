@@ -61,6 +61,8 @@ z80_byte *memory_paged[4];
 z80_byte puerto_32765=0;
 z80_byte puerto_8189=0;
 
+z80_byte port_romram_control = 0; 
+
 //Si hay mas de 128kb para maquinas tipo 128k y +2a
 //Si vale 1, solo 128k
 //Si vale 2, hay 256 kb
@@ -640,10 +642,10 @@ void mem_page_rom_128k(void)
 	//memory_paged[0]=rom_mem_table[(puerto_32765>>4)&1];
 	z80_byte rom_entra=(puerto_32765>>4)&1;
 	if((puerto_8189&0x04) == 0x04) rom_entra+=2;
-	if((puerto_8189&0x20) == 0x20) rom_entra+=4;
+	if((port_romram_control&0x04) == 0x04) rom_entra+=4;
 	// if switched to writable area
 	z80_byte ram_entra = 0;
-	if((puerto_8189&0x40) == 0x40) ram_entra=8;
+	if((port_romram_control&0x40) == 0x40) ram_entra=8;
 	printf("ROM PAGE: %d\n",rom_entra+ram_entra);
 	memory_paged[0]=rom_mem_table[rom_entra+ram_entra];
 

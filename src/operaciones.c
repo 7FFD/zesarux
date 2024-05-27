@@ -625,7 +625,7 @@ void poke_byte_no_time_spectrum_128k(z80_int dir, z80_byte valor)
 
 	segmento = dir / 16384;
 
-	if (dir > 16383 || (puerto_8189 & 0xC0) == 0xC0)
+	if (dir > 16383 || (port_romram_control & 0xC0) == 0xC0)
 	{
 #ifdef EMULATE_VISUALMEM
 
@@ -656,7 +656,7 @@ void poke_byte_spectrum_128k(z80_int dir, z80_byte valor)
 #endif
 	t_estados += 3;
 
-	if (dir > 16383 || (puerto_8189 & 0xC0) == 0xC0)
+	if (dir > 16383 || (port_romram_control & 0xC0) == 0xC0)
 	{
 #ifdef EMULATE_VISUALMEM
 
@@ -6856,13 +6856,18 @@ z80_byte lee_puerto_spectrum_no_time(z80_byte puerto_h, z80_byte puerto_l)
 	{
 		if(puerto_l == SDCARD_CONTROL_PORT)
 		{
-			return puerto_0x75;
+			return sdcard.cs;
 		}
 
 		if(puerto_l == SDCARD_DATA_PORT)
 		{
 			z80_byte port_value = sdcard_read();
 			return port_value;
+		}
+
+		if(puerto_l == ROMRAM_CONTROL_PORT)
+		{
+			return port_romram_control;
 		}
 	}
 
@@ -8793,17 +8798,32 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 	{
 		if(puerto_l == SDCARD_CONTROL_PORT)
 		{
-	        debug_printf(VERBOSE_INFO, "SD Card write to port: %d, value:%d", puerto_l, value);
-			puerto_0x75 = value;
-			z80_bit cs = { puerto_0x75&1 };
-			sdcard_cs(cs);
+	        debug_printf(VERBOSE_INFO, "SD Card write to control port: %d, value:%d", puerto_l, value);
+			sdcard_cs(value&3);
 			return;
 		}
 
 		if(puerto_l == SDCARD_DATA_PORT)
 		{
-	        debug_printf(VERBOSE_INFO, "SD Card write to port: %d, value:%d", puerto_l, value);
+	        debug_printf(VERBOSE_INFO, "SD Card write to data port: %d, value:%d", puerto_l, value);
 			sdcard_write(value);
+			return;
+		}
+
+		if(puerto_l == ROMRAM_CONTROL_PORT)
+		{
+			if(port_romram_control == (value&0xC7)) return;
+			port_romram_control = value&0xC7;
+			
+			if(port_romram_control&1) puerto_32765 |= 0x10;
+			else puerto_32765 = puerto_32765&0xEF;
+
+			if(port_romram_control&2) puerto_8189 |= 0x04;
+			else puerto_8189 = puerto_8189&0xFB;
+
+			if (!mem_paging_is_enabled()) return;
+
+			mem_page_rom_128k();
 			return;
 		}
 	}
@@ -8817,6 +8837,10 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 			if (mem_paging_is_enabled())
 			{
 				puerto_8189 = value;
+				
+				if (puerto_8189&0x04) port_romram_control |= 2;
+				else port_romram_control &= 0xFD;
+
 				printf("puerto_8189 = %02XH\n",puerto_8189);
 				// asignar rom
 				mem_page_rom_128k();
@@ -8843,6 +8867,9 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 				puerto_32765 = value;
 				// Paginar RAM y ROM
 				// 32 kb rom, 128 ram
+
+				if(puerto_32765&0x10) port_romram_control |= 1;
+				else port_romram_control &= 0xFE;
 
 				// asignar ram
 				mem_page_ram_128k();
