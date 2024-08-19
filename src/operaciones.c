@@ -6871,6 +6871,27 @@ z80_byte lee_puerto_spectrum_no_time(z80_byte puerto_h, z80_byte puerto_l)
 		}
 	}
 
+	if(mmc_enabled.v)
+	{
+		// Puertos SD
+		if (puerto_l == 0x77)
+		{
+			// Read: always 0 (the card is inserted in the regime R / W - in accordance with the interpretation of the Z-controller). The actual presence of maps should attempt to verify its initialization time an out.
+			// printf ("Returning SD port %04XH value 1\n",puerto);
+			return 1; // 1=inserted
+		}
+
+		// if (!sdc->image || !sdc->on || sdc->cs) return 0xff;    // no image or OFF or !CS
+
+		if (puerto_l == 0x57)
+		{
+			if (!baseconf_sd_enabled || baseconf_sd_cs)
+				return 0xFF;
+
+			return mmc_read();
+		}
+	}
+
 	// Esto tiene que estar antes de zxmmc y fuller dado que interfiere con puerto 3fh
 	if (multiface_enabled.v)
 	{
@@ -8824,6 +8845,58 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 			if (!mem_paging_is_enabled()) return;
 
 			mem_page_rom_128k();
+			return;
+		}
+	}
+
+	if(mmc_enabled.v)
+	{
+			// Puertos SD
+		// if (puerto_l==0x57 || puerto_l==0x77) printf ("Writing SD port %04XH value %02XH\n",puerto,value);
+
+		if (puerto_l == 0x77)
+		{
+			// printf ("Writing SD port %04Xh value %02XH\n",puerto,value);
+			/*
+			Bits 7 .. 2: set to 0 for compatibility
+
+			Bit 1: signal CS, 1 after the reset, set to 0 to select the SD-card
+
+			Bit 0: Set to 1 for compatibility with Z-controller
+
+
+					comp->sdc->on = val & 1;
+					comp->sdc->cs = (val & 2) ? 1 : 0;
+
+			*/
+
+			baseconf_sd_enabled = value & 1;
+			baseconf_sd_cs = (value & 2) ? 1 : 0;
+
+			mmc_cs(0xFE); // TODO. Este valor FE deberia depender de baseconf_sd_cs...
+			return;
+		}
+
+		if (puerto_l == 0x57)
+		{
+			// printf ("Writing SD port %04XH 57h value %02XH\n",puerto,value);
+
+			/* Envia valores FF y no se porque. Quien entienda esto que me lo explique...
+
+			Note: in the cycle of exchange on the SPI, initiated by writing or reading port # xx57, occurs simultaneously sending bytes to the SD-card and receive bytes from it. Sending byte is the same as that recorded in the port (if the cycle is initiated by the exchange of records), or # FF, if the cycle of exchange initiated by reading the port.
+			Received bytes is stored in an internal buffer and is available for the reading from the same port. This reading of the re-initiates the cycle of exchange, etc.
+			Allowed to read / write port # xx57 teams INIR and OTIR. Example of reading the sector:
+
+				LD	C,#57
+				LD	B,0
+				INIR
+				INIR
+
+			*/
+			if (!baseconf_sd_enabled || baseconf_sd_cs)
+				return;
+
+			mmc_write(value);
 			return;
 		}
 	}

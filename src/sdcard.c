@@ -57,6 +57,7 @@ void sdcard_reset()
 z80_byte sdcard_read()
 {
     debug_printf(VERBOSE_INFO, "SD Card read: 0x%02X, MODE: %d, CS:%d", sdcard.command_ret, sdcard.command_mode, sdcard.cs);
+//    sdcard_write(0xff);
     return sdcard.command_ret;
 }
 
