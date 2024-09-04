@@ -21,9 +21,9 @@
 #include <limits.h>
 #endif
 
-#define ROMRAM_CONTROL_PORT     0x73
-#define SDCARD_CONTROL_PORT     0x75
-#define SDCARD_DATA_PORT        0x77
+#define SDCARD_CONTROL_PORT     0x77
+#define SDCARD_DATA_PORT        0x57
+#define ROMRAM_CONTROL_PORT     0xE7
 
 #define SDCARD_CRC7_POLY        0x89
 
@@ -36,17 +36,20 @@ typedef enum
     SDCARD_APP_CMD       = 0x40|55,
     SDCARD_READ_OCR      = 0x40|58,
     SDCARD_CRC_ON_OFF    = 0x40|59,
+    SDCARD_STOP_TRANSFER = 0x40|12,
     SDCARD_SET_BLOCK_LEN = 0x40|16,
     SDCARD_READ_SBLOCK   = 0x40|17,
+    SDCARD_READ_MBLOCK   = 0x40|18,
     SDCARD_WRITE_SBLOCK  = 0x40|24,
+    SDCARD_WRITE_MBLOCK  = 0x40|25,
     SDCARD_UNKNOWN       = 0x40|0x3F
 } sdcard_cmd_t;
 
 typedef enum
 {
-    SDCARD_STD_MODE        = 0,
+    SDCARD_IDLE_MODE       = 0,
     SDCARD_APP_MODE        = 1,
-    SDCARD_SWITCH2APP_MODE = 2
+    SDCARD_RDY_MODE        = 2
 } sdcard_cmd_mode_t;
 
 typedef enum 
@@ -81,6 +84,7 @@ typedef struct
     z80_byte command_ret;
     z80_bit command_crc_on;
     z80_byte command_params[4];
+    int command_ret_params_count;
 
     // configuration parameters
     z80_bit enabled;
