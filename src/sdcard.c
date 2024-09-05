@@ -390,7 +390,7 @@ void sdcard_write(z80_byte value)
                                (sdcard.command_params[3]<<0);
                     if(sdcard.type > SDSC) position <<= 9;
                     
-                    sdcard.command_ret_params_count += 512 + 2;
+                    sdcard.command_ret_params_count += 512 + 2 + 1 + 10;
                     debug_printf(VERBOSE_INFO, "SD Card position: 0x%08lX", position);
                 }
                 else if(sdcard.command_param_index == 8 && value == 0xff)
@@ -458,19 +458,35 @@ void sdcard_write(z80_byte value)
                             debug_printf(VERBOSE_ERR, "SD Card write error: %d, Can't open file: ", ferror(pf), sdcard.file_path);
                             sdcard.command_state = 0x0D;
                         }
+                        sdcard.command_ret = 0xFF;
 
                         if(sdcard.command == SDCARD_WRITE_MBLOCK)
                         {
                             crc16 = 0;
                             position += 512;
                             sdcard.command_param_index = 7;
-                            sdcard.command_ret_params_count += 512 + 2;
+                            sdcard.command_ret_params_count += 512 + 2 + 1 + 10;
                         }
                     }
                 }
-                else if(is_error_state())
+                else if(!is_error_state() && sdcard.command_param_index == 523)
                 {
-                    sdcard.command_state = 0x05;
+                    sdcard.command_ret_params_count--;
+                    sdcard.command_ret = 0x05; // return CRC OK
+                }
+                else if(!is_error_state() && sdcard.command_param_index > 523 && sdcard.command_ret_params_count)
+                {
+                    sdcard.command_ret_params_count--;
+                    sdcard.command_ret = 0x00; // emulate busy state (internal write)
+                }
+                else if(!is_error_state() && sdcard.command_param_index > 523 && !sdcard.command_ret_params_count)
+                {
+                    sdcard.command_ret_params_count--;
+                    sdcard.command_ret = 0xFF; // emulate end of busy
+                }
+                else
+                {
+                    sdcard.command_state = 0x0D;
                     sdcard.command_ret_params_count = -1;
                 }
             }    
