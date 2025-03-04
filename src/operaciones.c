@@ -93,6 +93,7 @@
 #include "pcw.h"
 #include "dsk.h"
 #include "utils_text_adventure.h"
+#include "rtc.h"
 
 void (*poke_byte)(z80_int dir, z80_byte valor);
 void (*poke_byte_no_time)(z80_int dir, z80_byte valor);
@@ -7367,6 +7368,23 @@ Bit 5 If set disable Chrome features ( reading/writing to port 1FFDh, reading fr
 	{
 		if (puerto == 0xeff7)
 			return puerto_eff7;
+
+		if(mrgluk_rtc.enabled && mrgluk_rtc.active)
+		{
+			if(puerto == 0xdff7) // AS
+			{
+				return mrgluk_rtc.addr;
+			}
+			else if(puerto == 0xbff7) // DS
+			{
+				if(mrgluk_rtc.addr < 128)
+				{
+					rtc_update(&mrgluk_rtc);
+					return mrgluk_rtc.dat[mrgluk_rtc.addr];
+				}
+				return 0xFF;
+			}
+		}
 	}
 
 	if (gs_enabled.v)
@@ -9257,6 +9275,22 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 					else
 						screen_print_splash_text_center(ESTILO_GUI_TINTA_NORMAL, ESTILO_GUI_PAPEL_NORMAL, "Disabling 16C mode");
 				}
+			}
+
+			if(mrgluk_rtc.enabled)
+			{
+				mrgluk_rtc.active = value&0x80 ? 1 : 0;
+			}			
+		}
+		if(mrgluk_rtc.enabled && mrgluk_rtc.active)
+		{
+			if(puerto == 0xdff7) // AS
+			{
+				mrgluk_rtc.addr = value;
+			}
+			else if(puerto == 0xbff7) // DS
+			{
+				if(mrgluk_rtc.addr < 128) mrgluk_rtc.dat[mrgluk_rtc.addr] = value;
 			}
 		}
 	}
