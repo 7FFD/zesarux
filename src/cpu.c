@@ -978,6 +978,8 @@ void reset_cpu(void)
 {
 
 	debug_printf (VERBOSE_INFO,"Reset cpu");
+	
+	usleep(1000*1000);
 
 	if (rzx_reproduciendo) {
 		eject_rzx_file();

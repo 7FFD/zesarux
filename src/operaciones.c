@@ -7369,22 +7369,8 @@ Bit 5 If set disable Chrome features ( reading/writing to port 1FFDh, reading fr
 		if (puerto == 0xeff7)
 			return puerto_eff7;
 
-		if(mrgluk_rtc.enabled && mrgluk_rtc.active)
-		{
-			if(puerto == 0xdff7) // AS
-			{
-				return mrgluk_rtc.addr;
-			}
-			else if(puerto == 0xbff7) // DS
-			{
-				if(mrgluk_rtc.addr < 128)
-				{
-					rtc_update(&mrgluk_rtc);
-					return mrgluk_rtc.dat[mrgluk_rtc.addr];
-				}
-				return 0xFF;
-			}
-		}
+		if(puerto == 0xbff7) // DS
+			return rtc_read(&mrgluk_rtc);
 	}
 
 	if (gs_enabled.v)
@@ -9277,21 +9263,15 @@ void out_port_spectrum_no_time(z80_int puerto, z80_byte value)
 				}
 			}
 
-			if(mrgluk_rtc.enabled)
-			{
-				mrgluk_rtc.active = value&0x80 ? 1 : 0;
-			}			
+			rtc_cs(&mrgluk_rtc, value);
 		}
-		if(mrgluk_rtc.enabled && mrgluk_rtc.active)
+		else if(puerto == 0xdff7) // AS
 		{
-			if(puerto == 0xdff7) // AS
-			{
-				mrgluk_rtc.addr = value;
-			}
-			else if(puerto == 0xbff7) // DS
-			{
-				if(mrgluk_rtc.addr < 128) mrgluk_rtc.dat[mrgluk_rtc.addr] = value;
-			}
+			rtc_set_addr(&mrgluk_rtc, value);
+		}
+		else if(puerto == 0xbff7) // DS
+		{
+			rtc_write(&mrgluk_rtc, value);
 		}
 	}
 

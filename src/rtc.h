@@ -45,6 +45,8 @@ typedef struct
     u_int8_t ram1[77];
 } rtc_mem_t;
 
+#define MRGLUK_RTC_MEMORY_SIZE 64
+
 typedef struct
 {
     u_int8_t enabled;
@@ -53,10 +55,16 @@ typedef struct
     union
     {    
         rtc_mem_t mem;
-        u_int8_t dat[128];
+        u_int8_t dat[MRGLUK_RTC_MEMORY_SIZE];
     };
 } rtc_t;
 
 extern rtc_t mrgluk_rtc;
 
-void rtc_update(rtc_t* prtc);
+void rtc_cs(rtc_t* prtc, u_int8_t value);
+
+void rtc_set_addr(rtc_t* prtc, u_int8_t value);
+
+u_int8_t rtc_read(rtc_t* prtc);
+
+void rtc_write(rtc_t* prtc, u_int8_t value);
