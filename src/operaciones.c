@@ -7093,10 +7093,10 @@ FF3F                      British Micro Grafpad Pen up/
 
 			// left button
 			if (mouse_left)
-				acumulado &= (255 - 2);
+				acumulado &= (255 - 1);
 			// right button
 			if (mouse_right)
-				acumulado &= (255 - 1);
+				acumulado &= (255 - 2);
 
 			// en Next, bits altos se usan para wheel, como no los emulamos, a 0
 			// https://specnext.dev/wiki/Kempston_Mouse_Buttons
